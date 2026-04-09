@@ -1,8 +1,22 @@
-# The following lines of boilerplate have to be in your project's CMakeLists
-# in this exact order for cmake to work correctly
 cmake_minimum_required(VERSION 3.16)
 
+set(EXTRA_COMPONENT_DIRS
+    "${CMAKE_CURRENT_LIST_DIR}/core/system_manager"
+    "${CMAKE_CURRENT_LIST_DIR}/core/app_framework"
+    "${CMAKE_CURRENT_LIST_DIR}/core/event_hub"
+    "${CMAKE_CURRENT_LIST_DIR}/products/speaker"
+    "${CMAKE_CURRENT_LIST_DIR}/products/speaker/apps/home"
+    "${CMAKE_CURRENT_LIST_DIR}/services/display"
+    "${CMAKE_CURRENT_LIST_DIR}/services/audio"
+    "${CMAKE_CURRENT_LIST_DIR}/services/input"
+    "${CMAKE_CURRENT_LIST_DIR}/services/sensor"
+    "${CMAKE_CURRENT_LIST_DIR}/services/storage"
+    "${CMAKE_CURRENT_LIST_DIR}/ports/display_port"
+    "${CMAKE_CURRENT_LIST_DIR}/ports/lvgl_port"
+    "${CMAKE_CURRENT_LIST_DIR}/drivers/bus/spi_master"
+    "${CMAKE_CURRENT_LIST_DIR}/drivers/display/st7305"
+    "${CMAKE_CURRENT_LIST_DIR}/bsp/waveshare_esp32_s3_rlcd_4_2"
+)
+
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-# "Trim" the build. Include the minimal set of components, main, and anything it depends on.
-idf_build_set_property(MINIMAL_BUILD ON)
-project(RLCD-Esp32)
+project(RLCD-Esp32-Brookesia)
