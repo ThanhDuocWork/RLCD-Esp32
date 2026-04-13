@@ -13,6 +13,7 @@ typedef struct {
     const char *controller_name;
     board_display_bus_type_t bus_type;
     int spi_host_id;
+    int spi_mode;
     int sclk_gpio;
     int mosi_gpio;
     int miso_gpio;
@@ -24,6 +25,10 @@ typedef struct {
     uint32_t spi_clock_hz;
     uint16_t h_res;
     uint16_t v_res;
+    uint8_t column_start;
+    uint8_t column_end;
+    uint8_t page_start;
+    uint8_t page_end;
     bool color_invert;
     bool supports_partial_refresh;
 } board_lcd_config_t;

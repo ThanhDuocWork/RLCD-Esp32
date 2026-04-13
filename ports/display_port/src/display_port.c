@@ -21,6 +21,7 @@ esp_err_t display_port_init(void)
 
     const st7305_config_t panel_config = {
         .host_id = (spi_host_device_t)board_config->lcd.spi_host_id,
+        .spi_mode = board_config->lcd.spi_mode,
         .sclk_gpio = board_config->lcd.sclk_gpio,
         .mosi_gpio = board_config->lcd.mosi_gpio,
         .miso_gpio = board_config->lcd.miso_gpio,
@@ -31,6 +32,10 @@ esp_err_t display_port_init(void)
         .width = board_config->lcd.h_res,
         .height = board_config->lcd.v_res,
         .pixel_clock_hz = board_config->lcd.spi_clock_hz,
+        .column_start = board_config->lcd.column_start,
+        .column_end = board_config->lcd.column_end,
+        .page_start = board_config->lcd.page_start,
+        .page_end = board_config->lcd.page_end,
         .color_invert = board_config->lcd.color_invert,
     };
 
@@ -49,24 +54,22 @@ esp_err_t display_port_set_power(bool enable)
 
 esp_err_t display_port_fill_screen(uint16_t rgb444_color)
 {
+    uint8_t pattern = (rgb444_color == 0U) ? 0x00 : 0xFF;
+
     ESP_RETURN_ON_FALSE(s_port_ready, ESP_ERR_INVALID_STATE, TAG, "Display port not ready");
-    return st7305_fill_color(rgb444_color);
+    return st7305_fill_raw_pattern(pattern);
 }
 
 esp_err_t display_port_draw_test_pattern(void)
 {
     ESP_RETURN_ON_FALSE(s_port_ready, ESP_ERR_INVALID_STATE, TAG, "Display port not ready");
 
-    ESP_LOGI(TAG, "Draw simple test pattern");
-    ESP_RETURN_ON_ERROR(st7305_fill_color(0xFFF), TAG, "Fill white failed");
-    vTaskDelay(pdMS_TO_TICKS(300));
-    ESP_RETURN_ON_ERROR(st7305_fill_color(0x000), TAG, "Fill black failed");
-    vTaskDelay(pdMS_TO_TICKS(300));
-    ESP_RETURN_ON_ERROR(st7305_fill_color(0xF00), TAG, "Fill red failed");
-    vTaskDelay(pdMS_TO_TICKS(300));
-    ESP_RETURN_ON_ERROR(st7305_fill_color(0x0F0), TAG, "Fill green failed");
-    vTaskDelay(pdMS_TO_TICKS(300));
-    return st7305_fill_color(0x00F);
+    ESP_LOGI(TAG, "Draw structured ST7305 test pattern");
+    ESP_RETURN_ON_ERROR(st7305_fill_raw_pattern(0x00), TAG, "Fill dark failed");
+    vTaskDelay(pdMS_TO_TICKS(500));
+    ESP_RETURN_ON_ERROR(st7305_fill_raw_pattern(0xFF), TAG, "Fill bright failed");
+    vTaskDelay(pdMS_TO_TICKS(500));
+    return st7305_draw_test_pattern();
 }
 
 display_port_size_t display_port_get_size(void)
