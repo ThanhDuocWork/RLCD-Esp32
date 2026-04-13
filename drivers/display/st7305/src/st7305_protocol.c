@@ -64,16 +64,12 @@ esp_err_t st7305_protocol_set_rotation(uint8_t madctl_value)
 
 esp_err_t st7305_protocol_set_window(uint16_t xs, uint16_t xe, uint16_t ys, uint16_t ye)
 {
-    uint8_t column_data[4] = {
-        (uint8_t)(xs >> 8),
-        (uint8_t)(xs & 0xFF),
-        (uint8_t)(xe >> 8),
-        (uint8_t)(xe & 0xFF),
+    uint8_t column_data[2] = {
+        (uint8_t)(xs & 0x3F),
+        (uint8_t)(xe & 0x3F),
     };
-    uint8_t row_data[4] = {
-        (uint8_t)(ys >> 8),
+    uint8_t row_data[2] = {
         (uint8_t)(ys & 0xFF),
-        (uint8_t)(ye >> 8),
         (uint8_t)(ye & 0xFF),
     };
 
