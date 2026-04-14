@@ -1,20 +1,17 @@
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "st7305.h"
-
 #include <stdlib.h>
 #include <string.h>
 
 #include "driver/gpio.h"
 #include "esp_check.h"
 #include "esp_log.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "spi_master_driver.h"
 #include "st7305_protocol.h"
 
 static const char *TAG = "st7305";
 
 typedef struct {
-    spi_device_handle_t spi_dev;
     st7305_config_t config;
     bool ready;
 } st7305_runtime_t;
@@ -40,52 +37,10 @@ static const uint8_t s_madctl_default[] = { 0x48 };
 static const uint8_t s_interface_pixel_format[] = { 0x11 };
 static const uint8_t s_cabc_ctrl[] = { 0x20 };
 static const uint8_t s_frame_rate_ctrl[] = { 0x29 };
-static const uint8_t s_column_window[] = { 0x12, 0x2A };
-static const uint8_t s_page_window[] = { 0x00, 0xC7 };
 static const uint8_t s_te_on[] = { 0x00 };
 static const uint8_t s_oscillator_ctrl[] = { 0xFF };
 
 #define ST7305_TX_CHUNK_BYTES 384U
-
-static void st7305_delay_ms(uint32_t ms)
-{
-    vTaskDelay(pdMS_TO_TICKS(ms));
-}
-
-static esp_err_t st7305_gpio_init(const st7305_config_t *config)
-{
-    uint64_t pin_mask = 0;
-
-    if (config->dc_gpio >= 0) {
-        pin_mask |= (1ULL << config->dc_gpio);
-    }
-    if (config->reset_gpio >= 0) {
-        pin_mask |= (1ULL << config->reset_gpio);
-    }
-
-    if (pin_mask == 0) {
-        return ESP_OK;
-    }
-
-    const gpio_config_t io_cfg = {
-        .pin_bit_mask = pin_mask,
-        .mode = GPIO_MODE_OUTPUT,
-    };
-
-    return gpio_config(&io_cfg);
-}
-
-static esp_err_t st7305_spi_attach_device(const st7305_config_t *config, spi_device_handle_t *out_dev)
-{
-    const spi_device_interface_config_t dev_config = {
-        .clock_speed_hz = (int)config->pixel_clock_hz,
-        .mode = config->spi_mode,
-        .spics_io_num = config->cs_gpio,
-        .queue_size = 4,
-    };
-
-    return spi_bus_add_device(config->host_id, &dev_config, out_dev);
-}
 
 static esp_err_t st7305_tx_cmd(void *user_ctx, uint8_t cmd)
 {
@@ -95,7 +50,7 @@ static esp_err_t st7305_tx_cmd(void *user_ctx, uint8_t cmd)
     gpio_set_level(runtime->config.dc_gpio, 0);
     trans.length = 8;
     trans.tx_buffer = &cmd;
-    return spi_device_polling_transmit(runtime->spi_dev, &trans);
+    return spi_device_polling_transmit(runtime->config.spi_dev, &trans);
 }
 
 static esp_err_t st7305_tx_data(void *user_ctx, const void *data, size_t len)
@@ -110,7 +65,12 @@ static esp_err_t st7305_tx_data(void *user_ctx, const void *data, size_t len)
     gpio_set_level(runtime->config.dc_gpio, 1);
     trans.length = len * 8;
     trans.tx_buffer = data;
-    return spi_device_polling_transmit(runtime->spi_dev, &trans);
+    return spi_device_polling_transmit(runtime->config.spi_dev, &trans);
+}
+
+static void st7305_delay_ms(uint32_t ms)
+{
+    vTaskDelay(pdMS_TO_TICKS(ms));
 }
 
 static esp_err_t st7305_tx_data_chunked(const uint8_t *data, size_t len)
@@ -122,21 +82,6 @@ static esp_err_t st7305_tx_data_chunked(const uint8_t *data, size_t len)
         len -= burst;
     }
 
-    return ESP_OK;
-}
-
-static esp_err_t st7305_hw_reset(const st7305_config_t *config)
-{
-    if (config->reset_gpio < 0) {
-        return ESP_OK;
-    }
-
-    gpio_set_level(config->reset_gpio, 1);
-    st7305_delay_ms(50);
-    gpio_set_level(config->reset_gpio, 0);
-    st7305_delay_ms(20);
-    gpio_set_level(config->reset_gpio, 1);
-    st7305_delay_ms(50);
     return ESP_OK;
 }
 
@@ -228,8 +173,8 @@ static esp_err_t st7305_run_panel_init(void)
         { 0xB9, s_cabc_ctrl, sizeof(s_cabc_ctrl), 0 },
         { 0xB8, s_frame_rate_ctrl, sizeof(s_frame_rate_ctrl), 0 },
         { 0x20, NULL, 0, 0 },
-        { 0x2A, s_column_window, sizeof(s_column_window), 0 },
-        { 0x2B, s_page_window, sizeof(s_page_window), 0 },
+        { 0x2A, (const uint8_t[]){ 0x12, 0x2A }, 2, 0 },
+        { 0x2B, (const uint8_t[]){ 0x00, 0xC7 }, 2, 0 },
         { 0x35, s_te_on, sizeof(s_te_on), 0 },
         { 0xD0, s_oscillator_ctrl, sizeof(s_oscillator_ctrl), 0 },
         { 0x38, NULL, 0, 0 },
@@ -248,47 +193,28 @@ esp_err_t st7305_init(const st7305_config_t *config)
         .delay_ms = st7305_delay_ms,
         .user_ctx = &s_runtime,
     };
-    bus_spi_master_config_t spi_config;
 
     ESP_RETURN_ON_FALSE(config != NULL, ESP_ERR_INVALID_ARG, TAG, "config is null");
-    ESP_RETURN_ON_FALSE(config->cs_gpio >= 0, ESP_ERR_INVALID_ARG, TAG, "cs gpio is not configured");
+    ESP_RETURN_ON_FALSE(config->spi_dev != NULL, ESP_ERR_INVALID_ARG, TAG, "spi device is null");
     ESP_RETURN_ON_FALSE(config->dc_gpio >= 0, ESP_ERR_INVALID_ARG, TAG, "dc gpio is not configured");
-
-    spi_config = (bus_spi_master_config_t) {
-        .host_id = config->host_id,
-        .sclk_gpio = config->sclk_gpio,
-        .mosi_gpio = config->mosi_gpio,
-        .miso_gpio = config->miso_gpio,
-        .max_transfer_sz = ST7305_TX_CHUNK_BYTES,
-    };
-
-    ESP_RETURN_ON_ERROR(spi_master_driver_init(&spi_config), TAG, "SPI driver init failed");
-    ESP_RETURN_ON_ERROR(st7305_gpio_init(config), TAG, "GPIO init failed");
-    ESP_RETURN_ON_ERROR(st7305_spi_attach_device(config, &s_runtime.spi_dev), TAG, "SPI attach failed");
 
     s_runtime.config = *config;
 
     ESP_RETURN_ON_ERROR(st7305_protocol_init(&proto_io), TAG, "Protocol init failed");
-    ESP_RETURN_ON_ERROR(st7305_hw_reset(config), TAG, "Hardware reset failed");
     ESP_RETURN_ON_ERROR(st7305_run_panel_init(), TAG, "Panel init sequence failed");
 
     s_runtime.ready = true;
 
     ESP_LOGI(TAG,
-             "ST7305 initialized: host=%d mode=%d cs=%d dc=%d reset=%d busy=%d size=%dx%d col=%u..%u page=%u..%u clk=%lu",
-             config->host_id,
-             config->spi_mode,
-             config->cs_gpio,
+             "ST7305 initialized: dc=%d busy=%d size=%dx%d col=%u..%u page=%u..%u",
              config->dc_gpio,
-             config->reset_gpio,
              config->busy_gpio,
              config->width,
              config->height,
              config->column_start,
              config->column_end,
              config->page_start,
-             config->page_end,
-             (unsigned long)config->pixel_clock_hz);
+             config->page_end);
 
     return ESP_OK;
 }
@@ -310,9 +236,9 @@ esp_err_t st7305_fill_raw_pattern(uint8_t pattern_byte)
     memset(chunk, pattern_byte, sizeof(chunk));
     total_bytes = st7305_calc_buffer_size(&s_runtime.config);
     ESP_RETURN_ON_ERROR(st7305_protocol_tx_cmd(ST7305_CMD_CASET), TAG, "CASET failed");
-    ESP_RETURN_ON_ERROR(st7305_tx_data_chunked(s_column_window, sizeof(s_column_window)), TAG, "CASET data failed");
+    ESP_RETURN_ON_ERROR(st7305_tx_data_chunked((const uint8_t[]){ 0x12, 0x2A }, 2), TAG, "CASET data failed");
     ESP_RETURN_ON_ERROR(st7305_protocol_tx_cmd(ST7305_CMD_RASET), TAG, "RASET failed");
-    ESP_RETURN_ON_ERROR(st7305_tx_data_chunked(s_page_window, sizeof(s_page_window)), TAG, "RASET data failed");
+    ESP_RETURN_ON_ERROR(st7305_tx_data_chunked((const uint8_t[]){ 0x00, 0xC7 }, 2), TAG, "RASET data failed");
     ESP_RETURN_ON_ERROR(st7305_protocol_tx_cmd(ST7305_CMD_RAMWR), TAG, "RAMWR failed");
 
     while (total_bytes > 0) {
@@ -370,3 +296,4 @@ esp_err_t st7305_set_invert(bool enable)
     ESP_RETURN_ON_ERROR(st7305_require_ready(), TAG, "panel is not ready");
     return st7305_protocol_tx_cmd(enable ? ST7305_CMD_INVON : ST7305_CMD_INVOFF);
 }
+

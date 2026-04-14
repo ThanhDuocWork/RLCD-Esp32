@@ -32,5 +32,3 @@ const board_config_t *board_config_get_default(void)
 {
     return &s_board_config;
 }
-
-
