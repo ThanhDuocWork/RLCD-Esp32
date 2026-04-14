@@ -7,18 +7,11 @@
 #include "esp_err.h"
 
 typedef struct {
-    spi_host_device_t host_id;
-    int spi_mode;
-    int sclk_gpio;
-    int mosi_gpio;
-    int miso_gpio;
-    int cs_gpio;
+    spi_device_handle_t spi_dev;
     int dc_gpio;
     int busy_gpio;
-    int reset_gpio;
     int width;
     int height;
-    uint32_t pixel_clock_hz;
     uint8_t column_start;
     uint8_t column_end;
     uint8_t page_start;
