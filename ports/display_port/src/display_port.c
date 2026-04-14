@@ -1,6 +1,6 @@
 #include "display_port.h"
 
-#include "bsp_display.h"
+#include "board.h"
 #include "esp_check.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -13,27 +13,30 @@ static display_port_size_t s_size;
 
 esp_err_t display_port_init(void)
 {
-    const bsp_display_panel_config_t *panel_cfg = bsp_display_get_panel_config();
-    const bsp_display_info_t display_info = bsp_display_get_info();
-    spi_device_handle_t spi_dev = NULL;
+    const board_config_t *board_config = board_get_config();
+    const board_display_info_t display_info = board_get_display_info();
 
-    ESP_RETURN_ON_FALSE(panel_cfg != NULL, ESP_ERR_INVALID_STATE, TAG, "BSP display config is not available");
+    ESP_RETURN_ON_FALSE(board_config != NULL, ESP_ERR_INVALID_STATE, TAG, "Board config is not available");
     ESP_RETURN_ON_FALSE(display_info.width > 0, ESP_ERR_INVALID_STATE, TAG, "Display width is invalid");
-    ESP_RETURN_ON_ERROR(bsp_display_init(), TAG, "BSP display init failed");
-    ESP_RETURN_ON_ERROR(bsp_display_new_spi_device(&spi_dev), TAG, "Create SPI device failed");
-    ESP_RETURN_ON_ERROR(bsp_display_reset_panel(), TAG, "Panel reset failed");
 
     const st7305_config_t panel_config = {
-        .spi_dev = spi_dev,
-        .dc_gpio = panel_cfg->dc_gpio,
-        .busy_gpio = panel_cfg->busy_gpio,
-        .width = panel_cfg->width,
-        .height = panel_cfg->height,
-        .column_start = panel_cfg->column_start,
-        .column_end = panel_cfg->column_end,
-        .page_start = panel_cfg->page_start,
-        .page_end = panel_cfg->page_end,
-        .color_invert = panel_cfg->color_invert,
+        .host_id = (spi_host_device_t)board_config->lcd.spi_host_id,
+        .spi_mode = board_config->lcd.spi_mode,
+        .sclk_gpio = board_config->lcd.sclk_gpio,
+        .mosi_gpio = board_config->lcd.mosi_gpio,
+        .miso_gpio = board_config->lcd.miso_gpio,
+        .cs_gpio = board_config->lcd.cs_gpio,
+        .dc_gpio = board_config->lcd.dc_gpio,
+        .busy_gpio = board_config->lcd.busy_gpio,
+        .reset_gpio = board_config->lcd.reset_gpio,
+        .width = board_config->lcd.h_res,
+        .height = board_config->lcd.v_res,
+        .pixel_clock_hz = board_config->lcd.spi_clock_hz,
+        .column_start = board_config->lcd.column_start,
+        .column_end = board_config->lcd.column_end,
+        .page_start = board_config->lcd.page_start,
+        .page_end = board_config->lcd.page_end,
+        .color_invert = board_config->lcd.color_invert,
     };
 
     ESP_LOGI(TAG, "Initialize display port for %s", display_info.controller_name);
@@ -46,7 +49,7 @@ esp_err_t display_port_init(void)
 
 esp_err_t display_port_set_power(bool enable)
 {
-    return bsp_display_set_power(enable);
+    return board_display_set_power(enable);
 }
 
 esp_err_t display_port_fill_screen(uint16_t rgb444_color)

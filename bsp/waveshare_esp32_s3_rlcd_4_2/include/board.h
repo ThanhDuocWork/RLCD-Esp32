@@ -5,10 +5,14 @@
 
 #include "board_config.h"
 #include "board_features.h"
-#include "bsp_display.h"
 #include "esp_err.h"
 
-typedef bsp_display_info_t board_display_info_t;
+typedef struct {
+    const char *controller_name;
+    uint16_t width;
+    uint16_t height;
+    bool has_power_gate;
+} board_display_info_t;
 
 esp_err_t board_init(void);
 const board_config_t *board_get_config(void);
