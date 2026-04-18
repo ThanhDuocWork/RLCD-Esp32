@@ -285,6 +285,42 @@ esp_err_t st7305_draw_test_pattern(void)
     return ESP_OK;
 }
 
+esp_err_t st7305_draw_bitmap_1bpp(const uint8_t *bitmap, uint16_t width, uint16_t height, bool invert)
+{
+    uint8_t *buffer;
+    const int panel_width = s_runtime.config.width;
+    const int panel_height = s_runtime.config.height;
+    const size_t row_stride = ((size_t)width + 7U) / 8U;
+    const size_t buf_size = st7305_calc_buffer_size(&s_runtime.config);
+
+    ESP_RETURN_ON_ERROR(st7305_require_ready(), TAG, "panel is not ready");
+    ESP_RETURN_ON_FALSE(bitmap != NULL, ESP_ERR_INVALID_ARG, TAG, "bitmap is null");
+    ESP_RETURN_ON_FALSE(width == panel_width, ESP_ERR_INVALID_ARG, TAG, "bitmap width mismatch");
+    ESP_RETURN_ON_FALSE(height == panel_height, ESP_ERR_INVALID_ARG, TAG, "bitmap height mismatch");
+
+    buffer = (uint8_t *)calloc(1, buf_size);
+    ESP_RETURN_ON_FALSE(buffer != NULL, ESP_ERR_NO_MEM, TAG, "no mem for bitmap buffer");
+
+    for (int y = 0; y < panel_height; ++y) {
+        for (int x = 0; x < panel_width; ++x) {
+            const size_t src_index = ((size_t)y * row_stride) + ((size_t)x >> 3);
+            const uint8_t src_mask = (uint8_t)(1U << (7 - (x & 0x07)));
+            bool on = (bitmap[src_index] & src_mask) != 0;
+
+            if (invert) {
+                on = !on;
+            }
+
+            st7305_set_pixel_portrait(buffer, panel_width, x, y, on);
+        }
+    }
+
+    esp_err_t ret = st7305_push_buffer(buffer, buf_size);
+    free(buffer);
+    ESP_RETURN_ON_ERROR(ret, TAG, "push bitmap buffer failed");
+    return ret;
+}
+
 esp_err_t st7305_display_on(bool enable)
 {
     ESP_RETURN_ON_ERROR(st7305_require_ready(), TAG, "panel is not ready");

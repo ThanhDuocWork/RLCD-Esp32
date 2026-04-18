@@ -57,6 +57,14 @@ esp_err_t display_service_show_boot(void)
     return ESP_OK;
 }
 
+esp_err_t display_service_show_bitmap_1bpp(const uint8_t *bitmap, uint16_t width, uint16_t height, bool invert)
+{
+    ESP_RETURN_ON_FALSE(s_display_ready, ESP_ERR_INVALID_STATE, TAG, "Display is not initialized");
+    ESP_RETURN_ON_ERROR(display_port_set_power(true), TAG, "Display power failed");
+    ESP_LOGI(TAG, "Show 1bpp bitmap %ux%u", width, height);
+    return display_port_draw_bitmap_1bpp(bitmap, width, height, invert);
+}
+
 bool display_service_is_ready(void)
 {
     return s_display_ready;

@@ -22,5 +22,6 @@ typedef struct {
 esp_err_t st7305_init(const st7305_config_t *config);
 esp_err_t st7305_fill_raw_pattern(uint8_t pattern_byte);
 esp_err_t st7305_draw_test_pattern(void);
+esp_err_t st7305_draw_bitmap_1bpp(const uint8_t *bitmap, uint16_t width, uint16_t height, bool invert);
 esp_err_t st7305_display_on(bool enable);
 esp_err_t st7305_set_invert(bool enable);

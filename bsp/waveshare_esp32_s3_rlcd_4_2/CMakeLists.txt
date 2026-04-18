@@ -4,6 +4,7 @@ idf_component_register(
         "src/board_config.c"
         "src/board_features.c"
         "src/bsp_display.c"
+        "src/bsp_storage.c"
     INCLUDE_DIRS "include"
     REQUIRES driver esp_lcd esp_driver_spi spi_master
 )
