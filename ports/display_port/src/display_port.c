@@ -69,6 +69,14 @@ esp_err_t display_port_draw_test_pattern(void)
     return st7305_draw_test_pattern();
 }
 
+esp_err_t display_port_draw_bitmap_1bpp(const uint8_t *bitmap, uint16_t width, uint16_t height, bool invert)
+{
+    ESP_RETURN_ON_FALSE(s_port_ready, ESP_ERR_INVALID_STATE, TAG, "Display port not ready");
+    ESP_RETURN_ON_FALSE(bitmap != NULL, ESP_ERR_INVALID_ARG, TAG, "Bitmap is null");
+
+    return st7305_draw_bitmap_1bpp(bitmap, width, height, invert);
+}
+
 display_port_size_t display_port_get_size(void)
 {
     return s_size;

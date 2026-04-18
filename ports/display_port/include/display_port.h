@@ -14,5 +14,6 @@ esp_err_t display_port_init(void);
 esp_err_t display_port_set_power(bool enable);
 esp_err_t display_port_fill_screen(uint16_t rgb444_color);
 esp_err_t display_port_draw_test_pattern(void);
+esp_err_t display_port_draw_bitmap_1bpp(const uint8_t *bitmap, uint16_t width, uint16_t height, bool invert);
 display_port_size_t display_port_get_size(void);
 bool display_port_is_ready(void);
