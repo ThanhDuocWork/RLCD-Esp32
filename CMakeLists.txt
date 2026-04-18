@@ -13,6 +13,7 @@ set(EXTRA_COMPONENT_DIRS
     "${CMAKE_CURRENT_LIST_DIR}/services/storage"
     "${CMAKE_CURRENT_LIST_DIR}/services/image"
     "${CMAKE_CURRENT_LIST_DIR}/ports/display_port"
+    "${CMAKE_CURRENT_LIST_DIR}/ports/input_port"
     "${CMAKE_CURRENT_LIST_DIR}/ports/lvgl_port"
     "${CMAKE_CURRENT_LIST_DIR}/ports/storage_port"
     "${CMAKE_CURRENT_LIST_DIR}/drivers/bus/spi_master"
