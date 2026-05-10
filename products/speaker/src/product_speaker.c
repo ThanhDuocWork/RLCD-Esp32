@@ -14,11 +14,16 @@ static const char *TAG = "product_speaker";
 
 void product_speaker_start(void)
 {
+    esp_err_t ret;
+
     ESP_LOGI(TAG, "Boot speaker product");
 
     ESP_ERROR_CHECK(system_manager_init());
     ESP_ERROR_CHECK(display_service_init());
-    ESP_ERROR_CHECK(audio_service_init());
+    ret = audio_service_init();
+    if (ret != ESP_OK) {
+        ESP_LOGW(TAG, "Audio service init failed, continue without audio: %s", esp_err_to_name(ret));
+    }
     ESP_ERROR_CHECK(input_service_init());
     ESP_ERROR_CHECK(sensor_service_init());
     ESP_ERROR_CHECK(storage_service_init());

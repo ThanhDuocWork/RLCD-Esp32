@@ -13,10 +13,13 @@ set(EXTRA_COMPONENT_DIRS
     "${CMAKE_CURRENT_LIST_DIR}/services/storage"
     "${CMAKE_CURRENT_LIST_DIR}/services/image"
     "${CMAKE_CURRENT_LIST_DIR}/ports/display_port"
+    "${CMAKE_CURRENT_LIST_DIR}/ports/audio_port"
     "${CMAKE_CURRENT_LIST_DIR}/ports/input_port"
     "${CMAKE_CURRENT_LIST_DIR}/ports/lvgl_port"
     "${CMAKE_CURRENT_LIST_DIR}/ports/storage_port"
     "${CMAKE_CURRENT_LIST_DIR}/drivers/bus/spi_master"
+    "${CMAKE_CURRENT_LIST_DIR}/drivers/bus/i2c_master"
+    "${CMAKE_CURRENT_LIST_DIR}/drivers/audio/es8311"
     "${CMAKE_CURRENT_LIST_DIR}/drivers/display/st7305"
     "${CMAKE_CURRENT_LIST_DIR}/bsp/waveshare_esp32_s3_rlcd_4_2"
 )

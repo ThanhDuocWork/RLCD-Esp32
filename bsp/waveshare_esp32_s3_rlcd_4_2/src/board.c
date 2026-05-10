@@ -32,6 +32,11 @@ const board_features_t *board_get_features(void)
     return board_features_get();
 }
 
+const board_audio_codec_config_t *board_get_audio_codec_config(void)
+{
+    return bsp_audio_get_codec_config();
+}
+
 board_display_info_t board_get_display_info(void)
 {
     return bsp_display_get_info();
@@ -40,4 +45,9 @@ board_display_info_t board_get_display_info(void)
 esp_err_t board_display_set_power(bool enable)
 {
     return bsp_display_set_power(enable);
+}
+
+esp_err_t board_audio_set_pa_enabled(bool enable)
+{
+    return bsp_audio_set_pa_enabled(enable);
 }
